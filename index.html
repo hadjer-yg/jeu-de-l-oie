@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu de l'Oie - La Carte au Trésor des Pirates</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Metamorphous&family=Pirata+One&family=Quicksand:wght@500;700&display=swap');
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: #1a0f07 url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1920&auto=format&fit=crop') center/cover fixed;
+            color: #2c1a0e;
+        }
+
+        .font-pirate {
+            font-family: 'Pirata One', cursive;
+        }
+
+        .font-cinzel {
+            font-family: 'Cinzel Decorative', cursive;
+        }
+
+        .parchment {
+            background: #f4e4bc;
+            background-image: 
+                radial-gradient(hsla(40, 30%, 30%, .1) 12%, transparent 0),
+                radial-gradient(hsla(40, 30%, 30%, .1) 12%, transparent 0);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            border: 12px solid #5c3a21;
+            border-image: linear-gradient(to bottom right, #8b5a2b, #3d2314, #8b5a2b) 1 1 1 1;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .board-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* Aspect ratio 1:1 pour plateau carré */
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .board-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tile {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            border: 2px solid #4a2c11;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .tile:hover {
+            transform: translate(-50%, -50%) scale(1.15);
+            z-index: 20;
+        }
+
+        .tile-number {
+            font-size: 0.75rem;
+            position: absolute;
+            top: 2px;
+            line-height: 1;
+            font-weight: 900;
+        }
+
+        .tile-icon {
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        /* Types de cases */
+        .tile-normal { background: linear-gradient(135deg, #e6cb96, #c5a059); color: #2c1a0e; }
+        .tile-goose { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #4a2c11; border-color: #b8860b; }
+        .tile-trap { background: linear-gradient(135deg, #e74c3c, #922b21); color: #fff; }
+        .tile-card { background: linear-gradient(135deg, #3498db, #1f618d); color: #fff; }
+        .tile-secret { background: linear-gradient(135deg, #9b59b6, #6c3483); color: #fff; }
+        .tile-treasure { background: linear-gradient(135deg, #f1c40f, #d4ac0d); color: #000; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7); }
+            70% { transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 0 15px rgba(241, 196, 15, 0); }
+            100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); }
+        }
+
+        .player-token {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.6);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 30;
+            border: 2px solid #fff;
+        }
+
+        .player-active {
+            animation: activeGlow 1.2s infinite alternate;
+            z-index: 40 !important;
+        }
+
+        @keyframes activeGlow {
+            from { box-shadow: 0 0 5px #fff, 0 0 10px #ffd700, 0 0 15px #ffd700; transform: translate(-50%, -50%) scale(1); }
+            to { box-shadow: 0 0 15px #fff, 0 0 25px #ffd700, 0 0 35px #ffd700; transform: translate(-50%, -50%) scale(1.25); }
+        }
+
+        /* Dés 3D */
+        .dice {
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c1a0e;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4), inset 0 0 10px rgba(0,0,0,0.1);
+            border: 2px solid #d4ac0d;
+        }
+
+        .rolling {
+            animation: roll 0.5s ease-in-out infinite;
+        }
+
+        @keyframes roll {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.15); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #3d2314; }
+        ::-webkit-scrollbar-thumb { background: #8b5a2b; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen p-2 md:p-6 text-amber-950">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- HEADER -->
+        <header class="text-center mb-6 text-amber-100">
+            <h1 class="text-4xl md:text-6xl font-pirate tracking-wider drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] text-amber-400">
+                <i class="fa-solid fa-compass-drafting mr-3"></i>La Carte au Trésor des Pirates
+            </h1>
+            <p class="text-sm md:text-lg font-cinzel text-amber-200 mt-1">Le Grand Jeu de l'Oie des 7 Mers (1 à 63 Cases)</p>
+        </header>
+
+        <!-- CONFIGURATION DU JEU (MODALE INITIALE) -->
+        <div id="setup-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="parchment max-w-3xl w-full p-6 md:p-8 rounded-xl max-h-[90vh] overflow-y-auto">
+                <h2 class="text-3xl font-pirate text-center text-amber-900 border-b-2 border-amber-800 pb-2 mb-4">
+                    <i class="fa-solid fa-skull-crossbones mr-2"></i>Préparation de l'Équipage
+                </h2>
+
+                <div class="mb-6">
+                    <label class="block font-bold mb-2 text-lg">Nombre d'Équipages / Joueurs (2 à 12) :</label>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" id="player-count-slider" min="2" max="12" value="4" class="w-full accent-amber-800 h-3 bg-amber-200 rounded-lg cursor-pointer">
+                        <span id="player-count-disp" class="text-2xl font-bold font-pirate bg-amber-900 text-amber-100 px-4 py-1 rounded-lg">4</span>
+                    </div>
+                </div>
+
+                <div id="players-config-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Généré dynamiquement -->
+                </div>
+
+                <div class="text-center">
+                    <button id="start-game-btn" class="bg-gradient-to-r from-amber-700 to-amber-900 hover:from-amber-600 hover:to-amber-800 text-amber-100 font-pirate text-2xl px-8 py-3 rounded-xl shadow-lg transform transition hover:scale-105 border-2 border-amber-500">
+                        <i class="fa-solid fa-anchor mr-2"></i>Hisser les Voiles !
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ZONE DE JEU PRINCIPALE -->
+        <div id="game-zone" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- PANNEAU GAUCHE : JOUEURS & DES -->
+            <div class="lg:col-span-3 space-y-4 order-2 lg:order-1">
+                <!-- TOUR ACTUEL & COMMANDES -->
+                <div class="parchment p-4 rounded-xl text-center shadow-lg">
+                    <h3 class="font-cinzel font-bold text-amber-900 border-b border-amber-800/40 pb-1 mb-2">Tour Actuel</h3>
+                    <div id="active-player-card" class="p-3 rounded-lg flex items-center space-x-3 mb-3 border border-amber-700/30">
+                        <div id="active-avatar" class="w-12 h-12 rounded-full flex items-center justify-center text-2xl text-white shadow"></div>
+                        <div class="text-left">
+                            <div id="active-name" class="font-bold text-lg leading-tight"></div>
+                            <div id="active-status" class="text-xs text-amber-800 font-medium">Prêt à naviguer</div>
+                        </div>
+                    </div>
+
+                    <!-- DES -->
+                    <div class="flex justify-center items-center space-x-3 my-4">
+                        <div id="dice-1" class="dice"><i class="fa-solid fa-dice-one"></i></div>
+                        <div id="dice-2" class="dice hidden"><i class="fa-solid fa-dice-one"></i></div>
+                    </div>
+
+                    <div class="text-xs font-semibold text-amber-800 mb-3" id="dice-result-text">Lancez le dé pour avancer</div>
+
+                    <div class="space-y-2">
+                        <button id="roll-dice-btn" class="w-full bg-amber-800 hover:bg-amber-700 text-amber-100 font-pirate text-xl py-2 rounded-lg shadow transition flex items-center justify-center">
+                            <i class="fa-solid fa-dice mr-2"></i>Lancer <span id="dice-count-label" class="ml-1 text-sm">(1 Dé)</span>
+                        </button>
+                        <button id="toggle-dice-btn" class="text-xs text-amber-900 underline hover:text-amber-700">
+                            Changer pour 2 dés
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LISTE DE TOUS LES JOUEURS -->
+                <div class="parchment p-4 rounded-xl shadow-lg">
+                    <h3 class="font-cinzel font-bold text-amber-900 border-b border-amber-800/40 pb-2 mb-2 flex justify-between items-center">
+                        <span>Équipages</span>
+                        <span class="text-xs font-sans font-normal text-amber-800">Position</span>
+                    </h3>
+                    <div id="players-summary" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                        <!-- Liste dynamique -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PLATEAU DE JEU (CENTRE) -->
+            <div class="lg:col-span-6 order-1 lg:order-2">
+                <div class="parchment p-2 md:p-4 rounded-xl shadow-2xl relative">
+                    <div class="board-container">
+                        <!-- ARRIÈRE-PLAN DÉCORATIF DE LA CARTE AU TRÉSOR -->
+                        <div class="board-canvas rounded-lg overflow-hidden relative bg-[#dfc088] border-4 border-[#8b5a2b]">
+                            <!-- Rose des vents decorative -->
+                            <div class="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                                <i class="fa-solid fa-compass text-[280px] text-amber-950"></i>
+                            </div>
+                            
+                            <!-- SVG SPIRALE LIGNE DE DEPLACEMENT -->
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none" id="path-svg">
+                                <path id="spiral-path" d="" fill="none" stroke="#7a4b2a" stroke-width="4" stroke-dasharray="6,6" opacity="0.6"/>
+                            </svg>
+
+                            <!-- LES 63 CASES SONT GÉNÉRÉES ICI -->
+                            <div id="tiles-container"></div>
+
+                            <!-- PIONS DES JOUEURS -->
+                            <div id="tokens-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- INVENTAIRE D'ÉQUIPAGE DU JOUEUR ACTIF -->
+                    <div class="mt-3 p-3 bg-amber-950/20 border border-amber-800/40 rounded-lg">
+                        <div class="text-xs font-bold font-cinzel text-amber-900 mb-2 flex items-center justify-between">
+                            <span><i class="fa-solid fa-suitcase mr-1"></i>Inventaire de l'Équipage Actif</span>
+                            <span id="inventory-count" class="text-amber-800">0 carte(s)</span>
+                        </div>
+                        <div id="inventory-cards-container" class="flex gap-2 overflow-x-auto pb-1 min-h-[45px] items-center">
+                            <span class="text-xs text-amber-800/70 italic">Aucune carte conservée en réserve.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANNEAU DROITE : JOURNAL DE BORD & LEGENDE -->
+            <div class="lg:col-span-3 space-y-4 order-3">
+                <!-- JOURNAL DE BORD -->
+                <div class="parchment p-4 rounded-xl shadow-lg flex flex-col h-[320px]">
+                    <h3 class="font-cinzel font-bold text-amber-900 border-b border-amber-800/40 pb-2 mb-2 flex items-center">
+                        <i class="fa-solid fa-book-open mr-2"></i>Journal de Bord
+                    </h3>
+                    <div id="game-log" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs font-medium">
+                        <div class="text-amber-800 italic">La grande aventure commence... Fais rouler les dés !</div>
+                    </div>
+                </div>
+
+                <!-- LÉGENDE DU PLATEAU -->
+                <div class="parchment p-4 rounded-xl shadow-lg text-xs space-y-2">
+                    <h3 class="font-cinzel font-bold text-amber-900 border-b border-amber-800/40 pb-1 mb-2">Légende des Cases</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-amber-400 border border-amber-700"></div>
+                            <span><strong>Oie</strong> (Coup Double)</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-blue-500 border border-blue-800"></div>
+                            <span><strong>Carte</strong> Trésor</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-red-600 border border-red-900"></div>
+                            <span><strong>Piège / Prison</strong></span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-4 h-4 rounded-full bg-purple-600 border border-purple-900"></div>
+                            <span><strong>Passage Secret</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE PIOCHE DE CARTE AVEC CHOIX D'UTILISATION -->
+    <div id="card-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="parchment max-w-md w-full p-6 rounded-2xl shadow-2xl text-center transform transition-all scale-95 border-4 border-amber-600">
+            <div id="card-icon-wrapper" class="w-20 h-20 mx-auto rounded-full bg-amber-800 text-amber-200 flex items-center justify-center text-4xl shadow-lg mb-4 border-2 border-amber-400">
+                <i class="fa-solid fa-gem"></i>
+            </div>
+            <h3 id="card-title" class="font-pirate text-3xl text-amber-950 mb-2">Carte au Trésor !</h3>
+            <p id="card-description" class="text-sm font-medium text-amber-900 mb-6 bg-amber-100/60 p-3 rounded-lg border border-amber-800/20">
+                Vous avez trouvé une mystérieuse boussole enchantée...
+            </p>
+
+            <div id="card-choices" class="space-y-3">
+                <button id="btn-use-now" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-pirate text-xl py-3 rounded-xl shadow transition border border-emerald-400 flex items-center justify-center">
+                    <i class="fa-solid fa-bolt mr-2"></i>Utiliser la carte TOUT DE SUITE
+                </button>
+                <button id="btn-keep-card" class="w-full bg-amber-700 hover:bg-amber-600 text-amber-100 font-pirate text-xl py-3 rounded-xl shadow transition border border-amber-400 flex items-center justify-center">
+                    <i class="fa-solid fa-box-archive mr-2"></i>Garder dans l'inventaire
+                </button>
+            </div>
+
+            <button id="btn-card-ok" class="hidden w-full bg-amber-800 hover:bg-amber-700 text-amber-100 font-pirate text-xl py-3 rounded-xl shadow transition">
+                Compris !
+            </button>
+        </div>
+    </div>
+
+    <!-- MODALE VICTOIRE -->
+    <div id="victory-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="parchment max-w-lg w-full p-8 rounded-2xl text-center border-4 border-yellow-500 shadow-2xl animate-bounce">
+            <i class="fa-solid fa-trophy text-6xl text-yellow-500 mb-4 drop-shadow"></i>
+            <h2 class="font-pirate text-5xl text-amber-950 mb-2">VICTOIRE MARITIME !</h2>
+            <p id="winner-text" class="text-2xl font-bold text-amber-900 mb-6">L'équipage Capitaine Pirate a atteint le Trésor Suprême !</p>
+            <button onclick="location.reload()" class="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-amber-100 font-pirate text-2xl px-8 py-3 rounded-xl shadow-lg border-2 border-amber-400">
+                Rejouer une Partie
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. AVATARS PIRATES DISPONIBLES (12 UNIVERSELS) ---
+        const AVATARS = [
+            { id: 'ship', name: 'Navire Pirate', icon: 'fa-ship', color: '#8b0000' },
+            { id: 'captain', name: 'Capitaine', icon: 'fa-user-ninja', color: '#1b4965' },
+            { id: 'parrot', name: 'Perroquet', icon: 'fa-crow', color: '#2a9d8f' },
+            { id: 'chest', name: 'Coffre d\'Or', icon: 'fa-box-open', color: '#d4af37' },
+            { id: 'compass', name: 'Boussole', icon: 'fa-compass', color: '#6b705c' },
+            { id: 'cannon', name: 'Canon', icon: 'fa-bomb', color: '#333333' },
+            { id: 'anchor', name: 'Ancre Lourde', icon: 'fa-anchor', color: '#457b9d' },
+            { id: 'kraken', name: 'Kraken', icon: 'fa-squid', iconFallback: 'fa-water', color: '#5e503f' },
+            { id: 'skeleton', name: 'Squelette', icon: 'fa-skull', color: '#7f8c8d' },
+            { id: 'wizard', name: 'Sorcier Vaudou', icon: 'fa-hat-wizard', color: '#6a0572' },
+            { id: 'monkey', name: 'Singe Malicieux', icon: 'fa-paw', color: '#a0522d' },
+            { id: 'knight', name: 'Corsaire du Roi', icon: 'fa-shield-halved', color: '#b7094c' }
+        ];
+
+        // --- 2. DÉFINITION EXPLICITE ET STRUCTURÉE DES 63 CASES ---
+        // Liste exacte des cases avec leurs propriétés spécifiques
+        const TILE_DEFINITIONS = {
+            1: { type: 'normal', name: 'Départ du Port' },
+            5: { type: 'goose', name: 'Vent Favorable (Oie)', desc: 'Avancez du même nombre de cases !' },
+            6: { type: 'secret', name: 'Pont Suspendu', desc: 'Passage secret ! Sautez directement à la case 12.', target: 12 },
+            9: { type: 'goose', name: 'Courant Marin (Oie)', desc: 'Avancez encore du même score !' },
+            14: { type: 'goose', name: 'Grande Voile (Oie)', desc: 'Un coup de vent vous propulse !' },
+            18: { type: 'goose', name: 'Dauphins Guide (Oie)', desc: 'Les dauphins vous aident à doubler votre score !' },
+            19: { type: 'trap', name: 'Taverne des Pirates', desc: 'Saoulé par le rhum ! Passez 1 tour.', turns: 1 },
+            23: { type: 'goose', name: 'Albatros (Oie)', desc: 'Vol plané ! Rejouez votre score.' },
+            27: { type: 'card', name: 'Île aux Épaves' },
+            31: { type: 'trap', name: 'Puits / Prison des Profondeurs', desc: 'Tombé au fond du puits ! Bloqué jusqu\'à ce qu\'un joueur vous relève.', permanentTrap: true },
+            33: { type: 'card', name: 'Bouteille à la Mer' },
+            36: { type: 'secret', name: 'Passe du Perroquet', desc: 'Raccourci secret jusqu\'à la case 42 !', target: 42 },
+            42: { type: 'trap', name: 'Le Labyrinthe de Brouillard', desc: 'Perdu dans la brume ! Reculez à la case 30.', target: 30 },
+            45: { type: 'card', name: 'Grotte aux Crânes' },
+            50: { type: 'card', name: 'Comptoir des Marchands' },
+            52: { type: 'trap', name: 'Gêole du Capitaine', desc: 'Emprisonné ! Bloqué pendant 2 tours.', turns: 2 },
+            54: { type: 'goose', name: 'Siren Songs (Oie)', desc: 'Chant mystique ! Doubler votre déplacement.' },
+            58: { type: 'trap', name: 'Tête de Mort !', desc: 'Malédiction ultime ! Retour complet à la case 1 !', target: 1 },
+            63: { type: 'treasure', name: 'LE TRÉSOR DES PIRATES', desc: 'Victoire ! Vous avez atteint le Trésor Final !' }
+        };
+
+        // --- 3. BANQUE DE CARTES PIOCHABLES (CONSERVABLES OU INSTANTANÉES) ---
+        const CARDS_DECK = [
+            { id: 'vent_arriere', title: 'Vent Arrière !', desc: 'Avancez immédiatement de 3 cases.', type: 'instant', effect: player => movePlayerByOffset(player, 3) },
+            { id: 'canon_double', title: 'Canon à Poudre', desc: 'À utiliser pendant votre tour pour avancer de 2 cases bonus.', type: 'usable', icon: 'fa-bomb', effect: player => movePlayerByOffset(player, 2) },
+            { id: 'carte_tresor', title: 'Carte Oubliée', desc: 'Permet de sauter par-dessus n\'importe quel piège au prochain tour.', type: 'usable', icon: 'fa-map-marked-alt', effect: player => { logMessage(`${player.name} utilise sa Carte Oubliée pour se libérer de ses chaînes !`); player.skipTurns = 0; } },
+            { id: 'crochet_agile', title: 'Crochet Agile', desc: 'Rejouez immédiatement votre tour.', type: 'instant', effect: player => { logMessage(`${player.name} rejoue immédiatement !`); startTurn(playerIndex); } },
+            { id: 'rhum_soignant', title: 'Gorgée de Rhum', desc: 'Conservez cette carte pour annuler un tour de pénalité.', type: 'usable', icon: 'fa-wine-bottle', effect: player => { if(player.skipTurns > 0) player.skipTurns--; logMessage(`${player.name} se remet d'appoint !`); } }
+        ];
+
+        // --- 4. ÉTAT GLOBAL DU JEU ---
+        let players = [];
+        let playerIndex = 0;
+        let isRolling = false;
+        let currentDiceCount = 1;
+        let pendingCard = null;
+
+        // --- 5. CALCUL PRÉCIS DU PARCOURS EN SPIRALE / SERPENTIN (1 à 63) ---
+        function calculateSpiralCoordinates() {
+            const coords = [];
+            // Grille de spirale 8x8 réorganisée pour 63 cases harmonieuses
+            const spiralGrid = [
+                // Anneau externe (Top -> Right -> Bottom -> Left)
+                [0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],
+                [7,1],[7,2],[7,3],[7,4],[7,5],[7,6],[7,7],
+                [6,7],[5,7],[4,7],[3,7],[2,7],[1,7],[0,7],
+                [0,6],[0,5],[0,4],[0,3],[0,2],[0,1],
+                // Anneau 2
+                [1,1],[2,1],[3,1],[4,1],[5,1],[6,1],
+                [6,2],[6,3],[6,4],[6,5],[6,6],
+                [5,6],[4,6],[3,6],[2,6],[1,6],
+                [1,5],[1,4],[1,3],[1,2],
+                // Anneau 3
+                [2,2],[3,2],[4,2],[5,2],
+                [5,3],[5,4],[5,5],
+                [4,5],[3,5],[2,5],
+                [2,4],[2,3],
+                // Centre (Arrivée 63)
+                [3,3],[4,3],[4,4],[3,4]
+            ];
+
+            // Convertir la grille en pourcentages X, Y sur le plateau canvas (10% à 90%)
+            for (let i = 0; i < 63; i++) {
+                const gridPos = spiralGrid[i] || [3, 3];
+                const x = 9 + gridPos[0] * 11.6;
+                const y = 9 + gridPos[1] * 11.6;
+                coords.push({ id: i + 1, x, y });
+            }
+            return coords;
+        }
+
+        const BOARD_TILES = calculateSpiralCoordinates();
+
+        // --- 6. INITIALISATION & CONFIGURATION ---
+        const slider = document.getElementById('player-count-slider');
+        const countDisp = document.getElementById('player-count-disp');
+        const configList = document.getElementById('players-config-list');
+
+        slider.addEventListener('input', (e) => {
+            countDisp.textContent = e.target.value;
+            renderConfigInputs(parseInt(e.target.value));
+        });
+
+        function renderConfigInputs(count) {
+            configList.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const avatar = AVATARS[i % AVATARS.length];
+                const div = document.createElement('div');
+                div.className = "bg-amber-100/80 p-3 rounded-lg border border-amber-800/30 flex items-center space-x-3";
+                div.innerHTML = `
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shadow" style="background:${avatar.color}">
+                        <i class="fa-solid ${avatar.icon}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <input type="text" id="player-name-${i}" value="${avatar.name}" class="w-full bg-white px-2 py-1 rounded border border-amber-400 font-bold text-sm focus:outline-none">
+                    </div>
+                `;
+                configList.appendChild(div);
+            }
+        }
+
+        renderConfigInputs(4); // Valeur par défaut
+
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            const count = parseInt(slider.value);
+            players = [];
+            for (let i = 0; i < count; i++) {
+                const avatar = AVATARS[i % AVATARS.length];
+                const nameInput = document.getElementById(`player-name-${i}`);
+                players.push({
+                    id: i,
+                    name: nameInput ? nameInput.value || avatar.name : avatar.name,
+                    avatar: avatar,
+                    position: 1,
+                    skipTurns: 0,
+                    inventory: []
+                });
+            }
+
+            document.getElementById('setup-modal').classList.add('hidden');
+            document.getElementById('game-zone').classList.remove('hidden');
+
+            buildBoardUI();
+            buildTokensUI();
+            updateUI();
+            logMessage("La traversée commence ! Tous les navires sont à la case 1.");
+        });
+
+        // --- 7. CONSTRUCTION VISUELLE DU PLATEAU DE 63 CASES ---
+        function buildBoardUI() {
+            const tilesContainer = document.getElementById('tiles-container');
+            const svgPath = document.getElementById('spiral-path');
+            tilesContainer.innerHTML = '';
+
+            let pathD = "";
+
+            BOARD_TILES.forEach((tile, idx) => {
+                const def = TILE_DEFINITIONS[tile.id] || { type: 'normal', name: `Case ${tile.id}` };
+                
+                // Dessiner le chemin SVG
+                if (idx === 0) pathD += `M ${tile.x}% ${tile.y}%`;
+                else pathD += ` L ${tile.x}% ${tile.y}%`;
+
+                const el = document.createElement('div');
+                el.className = `tile tile-${def.type}`;
+                el.style.left = `${tile.x}%`;
+                el.style.top = `${tile.y}%`;
+                el.style.width = tile.id === 63 ? '14%' : '6.8%';
+                el.style.height = tile.id === 63 ? '14%' : '6.8%';
+                el.title = `${tile.id}. ${def.name}`;
+
+                let iconClass = 'fa-compass';
+                if (def.type === 'goose') iconClass = 'fa-feather-pointed';
+                if (def.type === 'trap') iconClass = 'fa-skull';
+                if (def.type === 'card') iconClass = 'fa-gem';
+                if (def.type === 'secret') iconClass = 'fa-dungeon';
+                if (def.type === 'treasure') iconClass = 'fa-crown';
+
+                el.innerHTML = `
+                    <span class="tile-number">${tile.id}</span>
+                    <i class="fa-solid ${iconClass} tile-icon"></i>
+                `;
+
+                tilesContainer.appendChild(el);
+            });
+
+            svgPath.setAttribute('d', pathD);
+        }
+
+        function buildTokensUI() {
+            const container = document.getElementById('tokens-container');
+            container.innerHTML = '';
+
+            players.forEach(p => {
+                const token = document.createElement('div');
+                token.id = `token-player-${p.id}`;
+                token.className = `player-token`;
+                token.style.backgroundColor = p.avatar.color;
+                token.innerHTML = `<i class="fa-solid ${p.avatar.icon}"></i>`;
+                container.appendChild(token);
+            });
+
+            updateTokensPosition();
+        }
+
+        function updateTokensPosition() {
+            players.forEach(p => {
+                const token = document.getElementById(`token-player-${p.id}`);
+                const tile = BOARD_TILES.find(t => t.id === p.position) || BOARD_TILES[0];
+                
+                // Décalage léger si plusieurs joueurs sur la même case
+                const sameTilePlayers = players.filter(other => other.position === p.position);
+                let offsetX = 0;
+                let offsetY = 0;
+                if (sameTilePlayers.length > 1) {
+                    const pIdx = sameTilePlayers.findIndex(other => other.id === p.id);
+                    offsetX = (pIdx % 3 - 1) * 8;
+                    offsetY = Math.floor(pIdx / 3) * 8;
+                }
+
+                token.style.left = `calc(${tile.x}% + ${offsetX}px)`;
+                token.style.top = `calc(${tile.y}% + ${offsetY}px)`;
+
+                if (p.id === playerIndex) {
+                    token.classList.add('player-active');
+                } else {
+                    token.classList.remove('player-active');
+                }
+            });
+        }
+
+        // --- 8. LOGIQUE DE JEU ET LANCER DE DÉS ---
+        document.getElementById('toggle-dice-btn').addEventListener('click', () => {
+            currentDiceCount = currentDiceCount === 1 ? 2 : 1;
+            document.getElementById('dice-count-label').textContent = `(${currentDiceCount} Dé${currentDiceCount > 1 ? 's' : ''})`;
+            document.getElementById('dice-2').classList.toggle('hidden', currentDiceCount === 1);
+            document.getElementById('toggle-dice-btn').textContent = currentDiceCount === 1 ? 'Changer pour 2 dés' : 'Changer pour 1 dé';
+        });
+
+        document.getElementById('roll-dice-btn').addEventListener('click', rollDice);
+
+        function rollDice() {
+            if (isRolling) return;
+            const currentPlayer = players[playerIndex];
+
+            // Vérification si tour sauté
+            if (currentPlayer.skipTurns > 0) {
+                currentPlayer.skipTurns--;
+                logMessage(`<span style="color:${currentPlayer.avatar.color}"><strong>${currentPlayer.name}</strong></span> passe son tour ! (Reste: ${currentPlayer.skipTurns})`);
+                nextTurn();
+                return;
+            }
+
+            isRolling = true;
+            const d1El = document.getElementById('dice-1');
+            const d2El = document.getElementById('dice-2');
+
+            d1El.classList.add('rolling');
+            if (currentDiceCount === 2) d2El.classList.add('rolling');
+
+            const diceIcons = ['fa-dice-one', 'fa-dice-two', 'fa-dice-three', 'fa-dice-four', 'fa-dice-five', 'fa-dice-six'];
+
+            let rolls = 0;
+            const interval = setInterval(() => {
+                const r1 = Math.floor(Math.random() * 6) + 1;
+                const r2 = Math.floor(Math.random() * 6) + 1;
+
+                d1El.innerHTML = `<i class="fa-solid ${diceIcons[r1 - 1]}"></i>`;
+                d2El.innerHTML = `<i class="fa-solid ${diceIcons[r2 - 1]}"></i>`;
+
+                rolls++;
+                if (rolls >= 10) {
+                    clearInterval(interval);
+                    d1El.classList.remove('rolling');
+                    d2El.classList.remove('rolling');
+
+                    const totalVal = r1 + (currentDiceCount === 2 ? r2 : 0);
+                    document.getElementById('dice-result-text').textContent = `Résultat : ${totalVal}`;
+                    logMessage(`<span style="color:${currentPlayer.avatar.color}"><strong>${currentPlayer.name}</strong></span> obtient <strong>${totalVal}</strong> avec les dés.`);
+
+                    movePlayer(currentPlayer, totalVal);
+                }
+            }, 50);
+        }
+
+        // --- 9. DÉPLACEMENT AVEC ANIMATION PAS À PAS ---
+        function movePlayer(player, steps, onComplete = null) {
+            let stepCount = 0;
+            const targetPos = player.position + steps;
+
+            const stepInterval = setInterval(() => {
+                if (steps > 0) player.position++;
+                else if (steps < 0) player.position--;
+
+                // Sécurité limites 1 à 63
+                if (player.position > 63) {
+                    const overflow = player.position - 63;
+                    player.position = 63 - overflow; // Rebord de la case 63
+                }
+                if (player.position < 1) player.position = 1;
+
+                updateTokensPosition();
+                stepCount++;
+
+                if (Math.abs(stepCount) >= Math.abs(steps) || player.position === 63) {
+                    clearInterval(stepInterval);
+                    isRolling = false;
+                    if (onComplete) {
+                        onComplete();
+                    } else {
+                        handleTileEffect(player);
+                    }
+                }
+            }, 300);
+        }
+
+        function movePlayerByOffset(player, offset) {
+            movePlayer(player, offset, () => {
+                nextTurn();
+            });
+        }
+
+        // --- 10. EFFETS DES CASES DU PLATEAU ---
+        function handleTileEffect(player) {
+            const tileDef = TILE_DEFINITIONS[player.position];
+
+            if (player.position === 63) {
+                showVictory(player);
+                return;
+            }
+
+            if (!tileDef) {
+                nextTurn();
+                return;
+            }
+
+            logMessage(`Case ${player.position} : <strong>${tileDef.name}</strong>`);
+
+            // Case Oie (coup double)
+            if (tileDef.type === 'goose') {
+                const lastRoll = parseInt(document.getElementById('dice-result-text').textContent.replace(/\D/g, '')) || 2;
+                logMessage(`Oie ! ${player.name} avance à nouveau de ${lastRoll} cases.`);
+                setTimeout(() => {
+                    movePlayer(player, lastRoll);
+                }, 600);
+                return;
+            }
+
+            // Case Piège
+            if (tileDef.type === 'trap') {
+                if (tileDef.target) {
+                    logMessage(`${player.name} tombe dans un piège et recule à la case ${tileDef.target} !`);
+                    setTimeout(() => {
+                        player.position = tileDef.target;
+                        updateTokensPosition();
+                        nextTurn();
+                    }, 800);
+                } else if (tileDef.turns) {
+                    player.skipTurns += tileDef.turns;
+                    logMessage(`${player.name} est bloqué pour ${tileDef.turns} tour(s) !`);
+                    nextTurn();
+                } else {
+                    nextTurn();
+                }
+                return;
+            }
+
+            // Case Passage Secret
+            if (tileDef.type === 'secret' && tileDef.target) {
+                logMessage(`${player.name} emprunte un passage secret vers la case ${tileDef.target} !`);
+                setTimeout(() => {
+                    player.position = tileDef.target;
+                    updateTokensPosition();
+                    nextTurn();
+                }, 800);
+                return;
+            }
+
+            // Case Carte au Trésor (Pioche de Carte avec Choix)
+            if (tileDef.type === 'card') {
+                triggerCardDraw(player);
+                return;
+            }
+
+            nextTurn();
+        }
+
+        // --- 11. GESTION DE LA PIOCHE ET DU CHOIX D'UTILISATION (DEMANDE AU JOUEUR) ---
+        function triggerCardDraw(player) {
+            const randomCard = CARDS_DECK[Math.floor(Math.random() * CARDS_DECK.length)];
+            pendingCard = randomCard;
+
+            const modal = document.getElementById('card-modal');
+            const titleEl = document.getElementById('card-title');
+            const descEl = document.getElementById('card-description');
+            const choicesEl = document.getElementById('card-choices');
+            const okBtn = document.getElementById('btn-card-ok');
+
+            titleEl.textContent = randomCard.title;
+            descEl.textContent = randomCard.desc;
+
+            if (randomCard.type === 'usable') {
+                // Choix : Jouer tout de suite ou Garder en réserve
+                choicesEl.classList.remove('hidden');
+                okBtn.classList.add('hidden');
+            } else {
+                // Effet instantané
+                choicesEl.classList.add('hidden');
+                okBtn.classList.remove('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // Action : Jouer la carte immédiatement
+        document.getElementById('btn-use-now').addEventListener('click', () => {
+            document.getElementById('card-modal').classList.add('hidden');
+            const currentPlayer = players[playerIndex];
+            logMessage(`${currentPlayer.name} choisit d'utiliser la carte <strong>${pendingCard.title}</strong> tout de suite !`);
+            if (pendingCard.effect) pendingCard.effect(currentPlayer);
+        });
+
+        // Action : Garder la carte dans l'inventaire
+        document.getElementById('btn-keep-card').addEventListener('click', () => {
+            document.getElementById('card-modal').classList.add('hidden');
+            const currentPlayer = players[playerIndex];
+            currentPlayer.inventory.push(pendingCard);
+            logMessage(`${currentPlayer.name} conserve <strong>${pendingCard.title}</strong> dans son coffre d'inventaire.`);
+            updateInventoryUI();
+            nextTurn();
+        });
+
+        // Action : Carte à effet direct validée
+        document.getElementById('btn-card-ok').addEventListener('click', () => {
+            document.getElementById('card-modal').classList.add('hidden');
+            const currentPlayer = players[playerIndex];
+            if (pendingCard.effect) pendingCard.effect(currentPlayer);
+        });
+
+        // --- 12. INVENTAIRE D'ÉQUIPAGE INTERACTIF ---
+        function updateInventoryUI() {
+            const currentPlayer = players[playerIndex];
+            const container = document.getElementById('inventory-cards-container');
+            const countEl = document.getElementById('inventory-count');
+
+            container.innerHTML = '';
+            countEl.textContent = `${currentPlayer.inventory.length} carte(s)`;
+
+            if (currentPlayer.inventory.length === 0) {
+                container.innerHTML = `<span class="text-xs text-amber-800/70 italic">Aucune carte conservée en réserve.</span>`;
+                return;
+            }
+
+            currentPlayer.inventory.forEach((card, idx) => {
+                const badge = document.createElement('button');
+                badge.className = "bg-amber-800 hover:bg-amber-700 text-amber-100 text-xs px-3 py-1.5 rounded-lg shadow flex items-center space-x-1.5 border border-amber-500 transform transition hover:scale-105";
+                badge.innerHTML = `<i class="fa-solid ${card.icon || 'fa-gem'} text-amber-300"></i><span>${card.title}</span>`;
+                badge.onclick = () => useInventoryCard(idx);
+                container.appendChild(badge);
+            });
+        }
+
+        function useInventoryCard(cardIndex) {
+            const currentPlayer = players[playerIndex];
+            const card = currentPlayer.inventory[cardIndex];
+
+            if (!card) return;
+
+            // Retirer de l'inventaire et appliquer
+            currentPlayer.inventory.splice(cardIndex, 1);
+            logMessage(`${currentPlayer.name} active sa carte de réserve : <strong>${card.title}</strong> !`);
+            updateInventoryUI();
+
+            if (card.effect) {
+                card.effect(currentPlayer);
+            }
+        }
+
+        // --- 13. TOURS DE JEU ET MISE À JOUR DE L'INTERFACE ---
+        function nextTurn() {
+            playerIndex = (playerIndex + 1) % players.length;
+            updateUI();
+        }
+
+        function startTurn(idx) {
+            playerIndex = idx;
+            updateUI();
+        }
+
+        function updateUI() {
+            const activeP = players[playerIndex];
+
+            // Carte du joueur actif
+            const activeCard = document.getElementById('active-player-card');
+            const avatarBox = document.getElementById('active-avatar');
+            const nameBox = document.getElementById('active-name');
+            const statusBox = document.getElementById('active-status');
+
+            activeCard.style.backgroundColor = activeP.avatar.color + '22';
+            avatarBox.style.backgroundColor = activeP.avatar.color;
+            avatarBox.innerHTML = `<i class="fa-solid ${activeP.avatar.icon}"></i>`;
+            nameBox.textContent = activeP.name;
+
+            if (activeP.skipTurns > 0) {
+                statusBox.textContent = `Bloqué (${activeP.skipTurns} tour(s))`;
+                statusBox.className = "text-xs font-bold text-red-700";
+            } else {
+                statusBox.textContent = `Case ${activeP.position} / 63`;
+                statusBox.className = "text-xs text-amber-900 font-medium";
+            }
+
+            // Liste de tous les équipages
+            const summaryBox = document.getElementById('players-summary');
+            summaryBox.innerHTML = '';
+
+            players.forEach((p, idx) => {
+                const isCurrent = idx === playerIndex;
+                const row = document.createElement('div');
+                row.className = `p-2 rounded-lg flex items-center justify-between border ${isCurrent ? 'bg-amber-300/60 border-amber-700 font-bold' : 'bg-amber-100/40 border-amber-800/20'}`;
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background:${p.avatar.color}">
+                            <i class="fa-solid ${p.avatar.icon}"></i>
+                        </div>
+                        <span class="text-xs truncate max-w-[120px]">${p.name}</span>
+                    </div>
+                    <span class="text-xs px-2 py-0.5 bg-amber-800 text-amber-100 rounded-full font-mono">
+                        ${p.position}/63
+                    </span>
+                `;
+                summaryBox.appendChild(row);
+            });
+
+            updateTokensPosition();
+            updateInventoryUI();
+        }
+
+        function logMessage(msg) {
+            const logBox = document.getElementById('game-log');
+            const item = document.createElement('div');
+            item.className = "bg-amber-100/80 p-2 rounded border-l-4 border-amber-800 shadow-sm";
+            item.innerHTML = msg;
+            logBox.prepend(item);
+        }
+
+        function showVictory(player) {
+            const modal = document.getElementById('victory-modal');
+            const txt = document.getElementById('winner-text');
+            txt.textContent = `L'équipage "${player.name}" atteint le Trésor Final (Case 63) et remporte la victoire !`;
+            modal.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
